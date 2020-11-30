@@ -5,3 +5,416 @@ date: "11/5/2020"
 output: pdf_document
 ---
 
+```{r, echo = FALSE, message = FALSE}
+delay_14 <- read.csv("ttc-streetcar-delay-data-2014.csv", header = TRUE)
+delay_15 <- read.csv("ttc-streetcar-delay-data-2015.csv", header = TRUE)
+delay_16 <- read.csv("ttc-streetcar-delay-data-2016.csv", header = TRUE)
+delay_17 <- read.csv("ttc-streetcar-delay-data-2017.csv", header = TRUE)
+delay_18 <- read.csv("ttc-streetcar-delay-data-2018.csv", header = TRUE)
+delay_19 <- read.csv("ttc-streetcar-delay-data-2019.csv", header = TRUE)
+delay_20 <- read.csv("ttc-streetcar-delay-data-2020.csv", header = TRUE)
+
+colnames(delay_20)[7] <- "Min.Delay"  
+colnames(delay_20)[8] <- "Min.Gap"  
+
+delay <- rbind(delay_14, delay_15, delay_16, delay_17, delay_18, delay_19, delay_20)
+
+library(lubridate)
+library(tidyverse)
+library(dplyr)
+delay$Report.Date <- ymd(delay$Report.Date)
+delay$year <- year(delay$Report.Date)
+delay$month <- month(delay$Report.Date)
+
+weather <- read.csv("Weather.csv")
+
+weather <- weather[-c(80 : 84), ]
+
+colnames(weather)[1] <- "year"
+colnames(weather)[2] <- "month"
+delay_final <- left_join(delay, weather, by = c("year", "month"))
+delay_final <- delay_final[-82703, ]
+
+for(i in 1 : nrow(delay_final)) {
+  if(delay_final$month[i] == 1) {
+    delay_final$month[i] <- "Jan"
+  }
+  if(delay_final$month[i] == 2) {
+    delay_final$month[i] <- "Feb"
+  }
+  if(delay_final$month[i] == 3) {
+    delay_final$month[i] <- "Mar"
+  }
+  if(delay_final$month[i] == 4) {
+    delay_final$month[i] <- "Apr"
+  }
+  if(delay_final$month[i] == 5) {
+    delay_final$month[i] <- "May"
+  }
+  if(delay_final$month[i] == 6) {
+    delay_final$month[i] <- "Jun"
+  }
+  if(delay_final$month[i] == 7) {
+    delay_final$month[i] <- "Jul"
+  }
+  if(delay_final$month[i] == 8) {
+    delay_final$month[i] <- "Aug"
+  }
+  if(delay_final$month[i] == 9) {
+    delay_final$month[i] <- "Sep"
+  }
+  if(delay_final$month[i] == 10) {
+    delay_final$month[i] <- "Oct"
+  }
+  if(delay_final$month[i] == 11) {
+    delay_final$month[i] <- "Nov"
+  }
+  if(delay_final$month[i] == 12) {
+    delay_final$month[i] <- "Dec"
+  }
+}
+```
+
+
+# Abstract
+
+
+# Introduction
+
+
+  When walking in the street in Toronto, Canada, it is very common to see the red and white streetcars driving around. These streetcars are operated by the Toronto Transit Commission (TTC) and there are in total 10 different streetcar routes, which bring large convenience and efficiency to the transportation system in the city of Toronto (Wikipedia 2020). However, as many other public traffic systems do, TTC streetcars also have frequent delays. The City of Toronto's Open Data Portal has collected TTC streetcar delay information from the year 2014 to the year 2020 and the data sets include variables like the incident, the date, the route and the length of the delay (Open Data Portal 2020). Although this data provided information related to the incident of the delay, which is very possible to have some impacts on the length of the delay, natural factors such as the weather could also potentially influence traffic delays. Therefore, historical weather data is obtained online, which includes the monthly average temperature and the monthly average precipitation and considered as a group-level predictor in the analysis (World Weather Online 2020). 
+  
+  In this study, a multilevel linear regression is fitted to these historical data to explore the potential relationships between the delayed incident and the length of the delay. A logistic regression?
+
+
+# Method
+
+### Variable Selection
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+ggplot(data = delay_final, aes(x = Incident, y = Min.Delay)) + 
+  geom_boxplot() +
+  coord_flip() +
+  ylim(0, 200) +
+  xlab("Delayed Incident") +
+  ylab("Delay in Minutes") +
+  ggtitle("Fig.1 Relation Between Incident Type & Delay Length") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+ggplot(delay[delay$Min.Delay < 60,]) +
+  geom_density(alpha = 0.3) +
+  aes(x = Min.Delay, color = factor(month)) + 
+  facet_wrap(~ factor(month)) + 
+  geom_rug() +
+  xlab("Delay in Minutes") +
+  theme(legend.position="none") +
+  ggtitle("Fig.2 Distribution of the delay length among different months") +
+  geom_vline(xintercept = mean(delay$Min.Delay), color = "red",lty = 2) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+### Model
+
+
+
+# Result
+
+
+
+
+# Discussion
+
+
+# Appendix
+
+### EDA (Exploratory data analysis) & Variable Selection
+
+```{r, eval = FALSE}
+# Remove the only 1 observation without Incident recorded and NAs 
+delay <- delay %>% 
+  filter(Incident != "") %>% 
+  filter(is.na(Min.Delay) == FALSE) 
+# 9 different delayed incidents in total 
+unique(delay$Incident)
+```
+
+
+```{r, message = FALSE}
+library(tidyverse)
+library(dplyr)
+library(kableExtra)
+# Difference between each delayed incident
+incident <- delay %>% 
+  group_by(Incident) %>% 
+  summarize(`mean(min)` = mean(Min.Delay), 
+            `mean(hr)` = mean(Min.Delay) / 60,
+            `max(min)` = max(Min.Delay),
+            `max(hr)` = max(Min.Delay) / 60)
+# The average delayed length and the maximum delayed length both vary a lot among 
+# different incidents, which suggests that incident may be a important variable to consider 
+kable(incident, "simple", digits = 2)
+```
+
+```{r, warning = FALSE, message = FALSE, eval = FALSE}
+# Difference between each year
+year <- delay %>% 
+  group_by(year) %>% 
+  summarize(`mean(min)` = mean(Min.Delay), 
+            `mean(hr)` = mean(Min.Delay) / 60)
+# The delayed length doesn't vary a lot among different years, which suggests that
+# the variable year may not have impact on the delayed length.
+year
+```
+
+```{r, warning = FALSE, message = FALSE}
+# Difference between each year
+month <- delay %>% 
+  group_by(month, year) %>% 
+  summarize(`mean(min)` = mean(Min.Delay), 
+            `mean(hr)` = mean(Min.Delay) / 60)
+# For the delays in the same month among different years, although some years showed
+# variations, it seems that overall the average delayed length is relatively close, 
+# and therefore during the analysis, the data could be grouped in months.
+kable(month[1 : 7, ], "simple", digits = 2)
+```
+
+```{r, message = FALSE, eval = FALSE}
+# Number of delays in each month
+number_month <- delay %>% 
+  group_by(month) %>% 
+  tally()
+# It seems that the numbers of times when delays happened are quite different 
+# among different months. 
+number_month
+```
+
+
+```{r, warning = FALSE, message = FALSE, eval = FALSE}
+ggplot(data = delay, aes(x = Incident, y = Min.Delay)) + 
+  geom_boxplot() +
+  # Horizontal boxplot
+  coord_flip() +
+  xlab("Delayed Incident") +
+  ylab("Delay in Minutes")
+# This original plot shows lots of the outliers, therefore in order to show clear 
+# visualization, the range of the delay is adjusted. 
+```
+
+
+
+### Model Fitting
+```{r}
+test <- delay_final[delay_final$Min.Delay <200,]
+
+```
+
+```{r, warning = FALSE, message = FALSE}
+# Start with the simple linear model
+lm <- lm(sqrt(Min.Delay ) ~ Incident, data = test)
+```
+
+```{r}
+library(lme4)
+# Varying intercept and slopes
+model_multi <- lmer(Min.Delay ~ Incident + Rain + (1 + Incident | month), data = delay_final)
+```
+
+```{r}
+# Display the average coefficients 
+fixef(model_multi)
+```
+
+```{r}
+# Display the group-level errors for the intercepts and slopes
+ranef(model_multi)
+```
+
+## Model Checking
+
+### Checking Assumption -- Linearity
+
+```{r}
+
+plot(model_multi, which = 2)
+```
+```{r}
+summary(lm)
+plot(lm, which = 2) 
+```
+```{r}
+lm2 <- lm(log(Min.Delay) ~ Rain, data = test)
+summary(lm2)
+plot(lm2, which = 2) 
+```
+```{r}
+hist(sqrt(test$Min.Delay ))
+
+```
+
+# Supplement
+
+## Code
+
+### Data Processing
+
+```{r, eval = FALSE}
+# Load in the streetcar delay data from year 2014 to 2020:
+delay_14 <- read.csv("ttc-streetcar-delay-data-2014.csv", header = TRUE)
+delay_15 <- read.csv("ttc-streetcar-delay-data-2015.csv", header = TRUE)
+delay_16 <- read.csv("ttc-streetcar-delay-data-2016.csv", header = TRUE)
+delay_17 <- read.csv("ttc-streetcar-delay-data-2017.csv", header = TRUE)
+delay_18 <- read.csv("ttc-streetcar-delay-data-2018.csv", header = TRUE)
+delay_19 <- read.csv("ttc-streetcar-delay-data-2019.csv", header = TRUE)
+delay_20 <- read.csv("ttc-streetcar-delay-data-2020.csv", header = TRUE)
+```
+
+
+```{r, eval = FALSE}
+# Merge the 7 data sets:
+# The variables collected among all data sets are consistent, but some column names 
+# need to be changed before merging.
+colnames(delay_14)
+colnames(delay_19)
+colnames(delay_20)
+colnames(delay_20)[7] <- "Min.Delay"  
+colnames(delay_20)[8] <- "Min.Gap"  
+delay <- rbind(delay_14, delay_15, delay_16, delay_17, delay_18, delay_19, delay_20)
+```
+
+```{r, eval = FALSE}
+# Change the date format:
+library(lubridate)
+delay$Report.Date <- ymd(delay$Report.Date)
+# Create new variables to indicate year and month
+delay$year <- year(delay$Report.Date)
+delay$month <- month(delay$Report.Date)
+```
+
+```{r, eval = FALSE}
+# Load in the extra weather data 
+weather <- read.csv("Weather.csv")
+# Since the delayed data only has complete information until July 2020,
+# the monthly weather data is also collected until July 2020
+weather <- weather[-c(80 : 84), ]
+```
+
+```{r, eval = FALSE}
+# Add the weather information to the delayed data 
+colnames(weather)[1] <- "year"
+colnames(weather)[2] <- "month"
+delay_final <- left_join(delay, weather, by = c("year", "month"))
+delay_final <- delay_final[-82703, ]
+```
+
+```{r}
+# Change the month variable into factor
+for(i in 1 : nrow(delay_final)) {
+  if(delay_final$month[i] == 1) {
+    delay_final$month[i] <- "Jan"
+  }
+  if(delay_final$month[i] == 2) {
+    delay_final$month[i] <- "Feb"
+  }
+  if(delay_final$month[i] == 3) {
+    delay_final$month[i] <- "Mar"
+  }
+  if(delay_final$month[i] == 4) {
+    delay_final$month[i] <- "Apr"
+  }
+  if(delay_final$month[i] == 5) {
+    delay_final$month[i] <- "May"
+  }
+  if(delay_final$month[i] == 6) {
+    delay_final$month[i] <- "Jun"
+  }
+  if(delay_final$month[i] == 7) {
+    delay_final$month[i] <- "Jul"
+  }
+  if(delay_final$month[i] == 8) {
+    delay_final$month[i] <- "Aug"
+  }
+  if(delay_final$month[i] == 9) {
+    delay_final$month[i] <- "Sep"
+  }
+  if(delay_final$month[i] == 10) {
+    delay_final$month[i] <- "Oct"
+  }
+  if(delay_final$month[i] == 11) {
+    delay_final$month[i] <- "Nov"
+  }
+  if(delay_final$month[i] == 12) {
+    delay_final$month[i] <- "Dec"
+  }
+}
+```
+
+
+### R code for Fig.1
+
+```{r, warning = FALSE, message = FALSE, eval = FALSE}
+ggplot(data = delay_final, aes(x = Incident, y = Min.Delay)) + 
+  geom_boxplot() +
+  coord_flip() +
+  ylim(0, 200) +
+  xlab("Delayed Incident") +
+  ylab("Delay in Minutes") +
+  ggtitle("Fig.1 Relation Between Incident Type & Delay Length") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+### R code for Fig.2
+
+```{r, warning = FALSE, message = FALSE, eval = FALSE}
+ggplot(delay[delay$Min.Delay < 60,]) +
+  geom_density(alpha = 0.3) +
+  aes(x = Min.Delay, color = factor(month)) + 
+  facet_wrap(~ factor(month)) + 
+  geom_rug() +
+  xlab("Delay in Minutes") +
+  theme(legend.position="none") +
+  ggtitle("Fig.2 Distribution of the delay length among different months") +
+  geom_vline(xintercept = mean(delay$Min.Delay), color = "red",lty = 2) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+# Bibliography
+
+## Online Resources:
+
+1. Wikipedia. (2020). *Toronto streetcar system* [online]. Available from: https://en.wikipedia.org/wiki/Toronto_streetcar_system#Route_numbers [accessed 29 November 2020]
+
+2. Open Data Portal. (2020). *TTC Streetcar Delay Data* [online]. Available from: https://open.toronto.ca/dataset/ttc-streetcar-delay-data/ [accessed 5 November 2020]
+
+3. World Weather Online. (2020). *Toronto Monthly Climate Averages*  [online]. Available from:https://www.worldweatheronline.com/toronto-weather-averages/ontario/ca.aspx [accessed 29 November 2020]
+
+
+## R package:
+
+1. Garrett Grolemund, Hadley Wickham (2011). Dates and Times Made Easy with lubridate. Journal of Statistical
+  Software, 40(3), 1-25. URL http://www.jstatsoft.org/v40/i03/. 
+  
+2. Wickham et al., (2019). Welcome to the tidyverse. Journal of Open Source Software, 4(43), 1686,
+  https://doi.org/10.21105/joss.01686
+
+3. Hadley Wickham, Romain François, Lionel Henry and Kirill Müller (2020). dplyr: A Grammar of Data
+  Manipulation. R package version 1.0.2. https://CRAN.R-project.org/package=dplyr
+  
+4. Douglas Bates, Martin Maechler, Ben Bolker, Steve Walker (2015). Fitting Linear Mixed-Effects Models Using
+  lme4. Journal of Statistical Software, 67(1), 1-48. doi:10.18637/jss.v067.i01.
+  
+5. Hao Zhu (2019). kableExtra: Construct Complex Table with 'kable' and
+  Pipe Syntax. R package version 1.1.0.
+  https://CRAN.R-project.org/package=kableExtra
+  
+
+
+
+
+
+
+
