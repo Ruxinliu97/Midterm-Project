@@ -111,7 +111,7 @@ delay_final <- delay_final %>%
 
 # EDA
 
-## R code for Fig.1
+## R code for Fig.1 in the report
 
 ```{r, warning = FALSE, message = FALSE, echo = FALSE}
 ggplot(data = delay_final, aes(x = Incident, y = Min.Delay)) + 
@@ -122,4 +122,93 @@ ggplot(data = delay_final, aes(x = Incident, y = Min.Delay)) +
   ylab("Delay in Minutes") +
   ggtitle("Fig.1 Relation Between Incident Type & Delay Length") +
   theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+## R code for Fig.2 in the report
+
+```{r}
+ggplot(data = delay_final, aes(x = Day, y = Min.Delay)) + 
+  geom_boxplot() +
+  ylim(0, 50) +
+  xlab("Day") +
+  ylab("Delay in Minutes") +
+  ggtitle("Fig.2 Relation Between Incident Type & Delay Day") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+```{r, warning = FALSE, message = FALSE, eval = FALSE}
+# Difference between each year
+year <- delay %>% 
+  group_by(year) %>% 
+  summarize(`mean(min)` = mean(Min.Delay), 
+            `mean(hr)` = mean(Min.Delay) / 60)
+# The delayed length doesn't vary a lot among different years, which suggests that
+# the variable year may not have impact on the delayed length.
+year
+```
+
+```{r, warning = FALSE, message = FALSE, eval = FALSE}
+# Difference between each month
+month <- delay %>% 
+  group_by(month, year) %>% 
+  summarize(`mean(min)` = mean(Min.Delay), 
+            `mean(hr)` = mean(Min.Delay) / 60)
+# The delayed length doesn't vary a lot among different months, which suggests that
+# the variable month may not have impact on the delayed length.
+kable(month[1 : 7, ], "simple", digits = 2)
+```
+
+```{r, message = FALSE, eval = FALSE}
+# Number of delays in each month
+number_month <- delay %>% 
+  group_by(month) %>% 
+  tally()
+# It seems that the numbers of times when delays happened are quite different 
+# among different months. 
+number_month
+```
+
+```{r, warning = FALSE, message = FALSE, eval = FALSE}
+ggplot(data = delay, aes(x = Incident, y = Min.Delay)) + 
+  geom_boxplot() +
+  # Horizontal boxplot
+  coord_flip() +
+  xlab("Delayed Incident") +
+  ylab("Delay in Minutes")
+# This original plot shows lots of the outliers, therefore in order to show clear 
+# visualization, the range of the delay is adjusted. 
+```
+
+# Model
+
+## Initial Model
+
+```{r}
+# Highly right-skewed
+hist(delay_final$Min.Delay)
+```
+
+```{r}
+# Not very normal even after log transformation 
+hist(log(delay_final$Min.Delay + 1), main = "Distribution of The Delayed Time (min)",
+     xlab = "log(Min.Delay + 1)")
+```
+
+```{r}
+# Start with the simple linear model
+lm <- lm(log(Min.Delay +1) ~ Incident, data = delay_final)
+```
+
+```{r}
+# Residuals are not normal and not randomly distributed -- linear model is not good 
+plot(lm)
+```
+
+```{r}
+# Try multilevel linear model -- the random slope term is not very suitable
+library(lme4)
+# Varying intercept and slopes
+model_multi <- lmer(Min.Delay ~ Incident + Rain + (1 + Incident | month), data = delay_final)
 ```
