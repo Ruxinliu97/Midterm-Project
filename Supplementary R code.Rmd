@@ -1,0 +1,125 @@
+---
+title: "Supplementary R code"
+author: "Ruxin Liu"
+date: "12/9/2020"
+output: pdf_document
+---
+
+# Data Processing
+
+```{r, eval = FALSE}
+# Load in the streetcar delay data from year 2014 to 2020:
+delay_14 <- read.csv("ttc-streetcar-delay-data-2014.csv", header = TRUE)
+delay_15 <- read.csv("ttc-streetcar-delay-data-2015.csv", header = TRUE)
+delay_16 <- read.csv("ttc-streetcar-delay-data-2016.csv", header = TRUE)
+delay_17 <- read.csv("ttc-streetcar-delay-data-2017.csv", header = TRUE)
+delay_18 <- read.csv("ttc-streetcar-delay-data-2018.csv", header = TRUE)
+delay_19 <- read.csv("ttc-streetcar-delay-data-2019.csv", header = TRUE)
+delay_20 <- read.csv("ttc-streetcar-delay-data-2020.csv", header = TRUE)
+```
+
+
+```{r, eval = FALSE}
+# Merge the 7 data sets:
+# The variables collected among all data sets are consistent, but some column names 
+# need to be changed before merging.
+colnames(delay_14)
+colnames(delay_19)
+colnames(delay_20)
+colnames(delay_20)[7] <- "Min.Delay"  
+colnames(delay_20)[8] <- "Min.Gap"  
+delay <- rbind(delay_14, delay_15, delay_16, delay_17, delay_18, delay_19, delay_20)
+```
+
+```{r, eval = FALSE}
+# Change the date format:
+library(lubridate)
+delay$Report.Date <- ymd(delay$Report.Date)
+# Create new variables to indicate year and month
+delay$year <- year(delay$Report.Date)
+delay$month <- month(delay$Report.Date)
+```
+
+```{r, eval = FALSE}
+# Load in the extra weather data 
+weather <- read.csv("Weather.csv")
+# Since the delayed data only has complete information until July 2020,
+# the monthly weather data is also collected until July 2020
+weather <- weather[-c(13 : 84), ]
+```
+
+```{r, eval = FALSE}
+# Add the weather information to the delayed data 
+colnames(weather)[1] <- "month"
+delay_final <- left_join(delay, weather, by = "month")
+delay_final <- delay_final[-82703, ]
+```
+
+```{r}
+# Change the month variable into factor
+for(i in 1 : nrow(delay_final)) {
+  if(delay_final$month[i] == 1) {
+    delay_final$month[i] <- "Jan"
+  }
+  if(delay_final$month[i] == 2) {
+    delay_final$month[i] <- "Feb"
+  }
+  if(delay_final$month[i] == 3) {
+    delay_final$month[i] <- "Mar"
+  }
+  if(delay_final$month[i] == 4) {
+    delay_final$month[i] <- "Apr"
+  }
+  if(delay_final$month[i] == 5) {
+    delay_final$month[i] <- "May"
+  }
+  if(delay_final$month[i] == 6) {
+    delay_final$month[i] <- "Jun"
+  }
+  if(delay_final$month[i] == 7) {
+    delay_final$month[i] <- "Jul"
+  }
+  if(delay_final$month[i] == 8) {
+    delay_final$month[i] <- "Aug"
+  }
+  if(delay_final$month[i] == 9) {
+    delay_final$month[i] <- "Sep"
+  }
+  if(delay_final$month[i] == 10) {
+    delay_final$month[i] <- "Oct"
+  }
+  if(delay_final$month[i] == 11) {
+    delay_final$month[i] <- "Nov"
+  }
+  if(delay_final$month[i] == 12) {
+    delay_final$month[i] <- "Dec"
+  }
+}
+```
+
+```{r}
+# Add an indicator for weekend or not
+delay_final$weekend <- ifelse(delay_final$Day == "Sunday" | delay_final$Day == "Saturday", 1, 0)
+```
+
+```{r}
+# Subset the data on the 10 routes of the Toronto streetcar system 
+route_ttc <- c(501, 503, 504, 505, 506, 508, 509, 510, 511, 512)
+delay_final <- delay_final %>% 
+  filter(Route %in% route_ttc)
+```
+
+# EDA
+
+## R code for Fig.1
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+ggplot(data = delay_final, aes(x = Incident, y = Min.Delay)) + 
+  geom_boxplot() +
+  coord_flip() +
+  ylim(0, 200) +
+  xlab("Delayed Incident") +
+  ylab("Delay in Minutes") +
+  ggtitle("Fig.1 Relation Between Incident Type & Delay Length") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
