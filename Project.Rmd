@@ -371,7 +371,8 @@ rootogram(model_nb)
 
 
 ```{r, message = FALSE, echo = FALSE}
-kable(cbind(Estimate = coef(model_nb), confint(model_nb)), caption = "The 95% confidence interval for the coefficients of the initial negative binomial model.")
+coef <- cbind(Estimate = coef(model_nb), confint(model_nb))
+kable(coef, caption = "The 95% confidence interval for the coefficients of the initial negative binomial model.")
 ```
 
 
@@ -389,6 +390,7 @@ summary(nb_route)
 # Random effects
 ranef(nb_route)
 ```
+
 
 
 # Bibliography
