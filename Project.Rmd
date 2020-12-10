@@ -5,7 +5,7 @@ date: "11/5/2020"
 output: pdf_document
 ---
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, fig.height = 4, fig.width = 6, fig.align = "center")
+knitr::opts_chunk$set(echo = FALSE, fig.height = 4, fig.width = 6, fig.align = "center", fig.pos = 'H')
 ```
 
 ```{r, echo = FALSE, message = FALSE}
@@ -85,6 +85,14 @@ delay_final <- delay_final %>%
 
 # Abstract
 
+  In the city of Toronto, it is very common to experience streetcar delays and it 
+  would be helpful to understand what factors could impact the delayed time. In
+  order to answer the question, a multilevel negative binomial model is fitted in 
+  this study. The results found that both the delay-causing incident and the 
+  delay-happening day have impact on how long the delay in minutes will be. 
+  After improving this model, it will be useful for passengers to have a general
+  idea about their waiting time. 
+
 
 # Introduction
 
@@ -115,9 +123,10 @@ delay_final <- delay_final %>%
   The data was downloaded from The City of Toronto's Open Data Portal and was cleaned
 and processed in R (all the detailed codes are in the file: Supplementary R code.Rmd).
 The data was subsetted on the 10 routes that are part of the Toronto streetcar system,
-which are route number 501, 503, 504, 505, 506, 508, 509, 510, 511 and 512. Table.1 
-below shows the major information collected in this data, where Min.Delay is the 
-length of the delay in minutes to the schedule for the following streetcar.
+which are route number 501, 503, 504, 505, 506, 508, 509, 510, 511 and 512. In 
+total, there are 76886 observations. Table 1 below displays the major information 
+collected in this data, where Min.Delay is the length of the delay in minutes to
+the schedule for the following streetcar.
 
 
 ```{r, warning = FALSE, message = FALSE, echo = FALSE}
@@ -144,7 +153,7 @@ ggplot(data = delay_final, aes(x = Incident, y = Min.Delay)) +
   ylim(0, 200) +
   xlab("Delayed Incident") +
   ylab("Delay in Minutes") +
-  ggtitle("Fig.1 Relation Between Incident Type & Delay Length") +
+  ggtitle("Fig.1 Relationship Between Incident & Delay Length") +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
@@ -163,7 +172,7 @@ ggplot(data = delay_final, aes(x = Day, y = Min.Delay)) +
   ylim(0, 50) +
   xlab("Day") +
   ylab("Delay in Minutes") +
-  ggtitle("Fig.2 Relation Between Incident Type & Delay Day") +
+  ggtitle("Fig.2 Relationship Between Delay Day & Delay Length") +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
@@ -180,7 +189,7 @@ ggplot(data = delay_final, aes(x = Day, y = Min.Delay)) +
   and weekend variables as the predictors and they are all statistically significant
   at the $\alpha$ level of 5%, which confirms with the EDA that they are important
   factors to consider. And by checking the residuals and plotting Rootograms, the 
-  negative binomial model is confirmed to be the appropriate model for this data 
+  negative binomial model is confirmed to be the more appropriate model for this data 
   (The detailed model validation process is in the Appendix). 
   
   
@@ -188,7 +197,7 @@ ggplot(data = delay_final, aes(x = Day, y = Min.Delay)) +
   different among the 10 routes, where the red dashed line is the mean minutes of 
   delay. In order to capture this in the model, each route will have its own intercept.
   Therefore, the final model for this study is a multilevel negative binomial regression
-  fitted with the *lme4* package in R, where the delayed time is the response, 
+  fitted with the *lme4* package in R, where the delayed time in minutes is the response, 
   delayed incident and weekend indicator are the predictors, with each route having
   a varying intercept (glmer.nb(Min.Delay ~ Incident + weekend + (1 | Route))).
   
@@ -242,7 +251,7 @@ library(sjPlot)
 nb_route <- glmer.nb(Min.Delay ~ Incident + weekend + (1 | Route), data = delay_final)
 ```
 
-```{r, warning = FALSE, message = FALSE, echo = FALSE}
+```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.height = 4, fig.width = 7}
 plot_model(nb_route, show.values=TRUE, show.p=TRUE, 
            title = "Fig.4 Model Effects: glmer.nb(Min.Delay ~ Incident + weekend + (1 | Route))")
 ```
@@ -257,21 +266,32 @@ plot_model(nb_route, show.values=TRUE, show.p=TRUE,
   be the longest, while when the delay is due to late leaving garage, the average
   delayed time in minutes is expected to be the shortest. Also, when the delay happens
   on weekdays, the average delayed time in minutes is expected to be shorter than
-  on weekends. 
+  on weekends. Since this study performs a multilevel model with random intercepts
+  for all 10 routes, we can also know the difference between the routes. With this
+  conclusion, it might be helpful for passengers to have a general idea about how
+  long they need to wait for the following streetcar.
   
 
 ### Future Directions
 
+* Although the current multilevel negative binomial model is the most appropriate 
+one after exploring other options, the residual plot and the Rootogram both suggest
+that the model could be improved more. One future improvement could be doing research
+and setting a delayed time cut-off point, which indicates whether the delayed time
+is long or short, and then try to fit the multilevel logistic model. 
 
+* The other improvement could be done for the future is to use the Gaussian approach
+and fit the model with stan functions, which allows posterior predictive checks.
 
-
-
+* The original data set does not contain lots of information. For future studies, 
+one improvement could be adding in other potential confounding variables, such as 
+the weather.  
 
 
 
 # Appendix
 
-## EDA 
+### EDA 
 
 ```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.cap = "The distribution of the delayed time (Min.Delay) is not very normally distributed after log transformation, therefore suggesting that a linear model is not appropriate for this data."}
 hist(log(delay_final$Min.Delay + 1), main = "Distribution of The Delayed Time (min)",
@@ -284,16 +304,17 @@ hist(log(delay_final$Min.Delay + 1), main = "Distribution of The Delayed Time (m
 # Difference between each delayed incident
 incident <- delay %>% 
   group_by(Incident) %>% 
+  filter(is.na(Min.Delay) == F) %>% 
   summarize(`mean(min)` = mean(Min.Delay), 
             `mean(hr)` = mean(Min.Delay) / 60,
             `max(min)` = max(Min.Delay),
             `max(hr)` = max(Min.Delay) / 60)
-kable(incident, "simple", digits = 2, caption = "Table.1 The average delayed length
+kable(incident, "simple", digits = 2, caption = "The average delayed length
       and the maximum delayed length both vary a lot among different incidents,
-      which suggests that incident is a important variable to consider. ")
+      which suggests that incident is a important variable to consider.")
 ```
 
-```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.cap = "From this plot, there is no obvious difference between the 12 months, therefore the month is not used for grouping in the model."}
+```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.height = 3, fig.width = 5, fig.cap = "From this plot, there is no obvious difference between the 12 months, therefore the month is not used for grouping in the model."}
 month <- delay_final %>% 
   filter(Min.Delay < 60) %>% 
   filter(is.na(month) == F)
@@ -312,21 +333,19 @@ ggplot(month) +
 
 ## Model Fitting & Validation
 
-```{r}
-# Initial Linear Regression
+```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.cap = "Initial Linear Regression: lm(log(Min.Delay + 1) - Incident). Assumptions are violated, suggesting that linear model is not appropriate."}
 model_lm <- lm(log(Min.Delay + 1) ~ Incident, data = delay_final)
 par(mfrow=c(2,2))
-# Assumptions are violated, suggesting that linear model is not appropriate. 
+ 
 plot(model_lm, which = 2)
 plot(model_lm, which = 1) 
 ``` 
 
-```{r}
-# Initial Poisson Regression
+```{r,  echo = FALSE}
 poisson <- glm(Min.Delay ~ Incident + weekend, family = "poisson", data = delay_final)
 ```
 
-```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.cap = "In a poisson regression, the model’s standard deviation is expected to have a square root relationship with the fitted mean, which can be compared with the curve in the plot. Since the majority of the points fall above the line, it indicates the existence of overdispersion, and therefore poisson model may not be the best."}
+```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.cap = "In the initial poisson regression: glm(Min.Delay - Incident + weekend, family = poisson), the model’s standard deviation is expected to have a square root relationship with the fitted mean, which can be compared with the curve in the plot. Since the majority of the points fall above the line, it indicates the existence of overdispersion, and therefore poisson model may not be the best."}
 plot(fitted(poisson), resid(poisson), pch = 20)
 curve(sqrt(x), add = T)
 ```
@@ -336,13 +355,12 @@ library(countreg)
 rootogram(poisson)
 ```
 
-```{r, message = FALSE}
-# Initial Negative Binomial Regression
+```{r, message = FALSE, echo = FALSE}
 library(MASS)
 model_nb <- glm.nb(Min.Delay ~ Incident + weekend, data = delay_final)
 ```
 
-```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.cap = "Although there are still some points that fall above the line, the overdispersion has been fixed a lot compared to the poisson model, which suggests that the negative binomial model works better."}
+```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.cap = "The initial negative binomial model is glm.nb(Min.Delay - Incident + weekend). Although there are still some points that fall above the line, the overdispersion has been fixed a lot compared to the poisson model, which suggests that the negative binomial model works better."}
 plot(fitted(model_nb),resid(model_nb),pch=20)
 curve(sqrt(x),add=T)
 ```
@@ -352,27 +370,22 @@ rootogram(model_nb)
 ```
 
 
-```{r, message = FALSE}
-kable(cbind(Estimate = coef(model_nb), confint(model_nb)))
-```
-
-```{r, message = FALSE}
-# Final multilevel negative binomial regression model
-nb_route <- glmer.nb(Min.Delay ~ Incident + weekend + (1 | Route), data = delay_final)
+```{r, message = FALSE, echo = FALSE}
+kable(cbind(Estimate = coef(model_nb), confint(model_nb)), caption = "The 95% confidence interval for the coefficients of the initial negative binomial model.")
 ```
 
 
-```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.cap = "Although there are still some overdispersion at the lower counts, the residuals overall look fine."}
+```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.cap = "The final multilevel negative binomial regression model is glmer.nb(Min.Delay - Incident + weekend + (1 | Route)). Although there are still some overdispersion at the lower counts, the residuals overall look fine."}
 plot(fitted(nb_route), resid(nb_route),pch=20)
 curve(sqrt(x),add=T)
 ```
 
-```{r}
+```{r, echo=TRUE}
 # Model Summary
-tab_model(nb_route)
+summary(nb_route)
 ```
 
-```{r}
+```{r,echo=TRUE}
 # Random effects
 ranef(nb_route)
 ```
