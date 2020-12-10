@@ -214,39 +214,43 @@ ggplot(route) +
 # Result
 
   
+  From Fig.4, the effects and their 95% confidence intervals of the multilevel model 
+  are shown, where the effects are calculated by taking the exponential of the estimated 
+  coefficients. 
+  
 
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+library(lme4)
+library(sjPlot)
+nb_route <- glmer.nb(Min.Delay ~ Incident + weekend + (1 | Route), data = delay_final)
+```
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+plot_model(nb_route, show.values=TRUE, show.p=TRUE, 
+           title = "Fig.4 Model Effects: glmer.nb(Min.Delay ~ Incident + weekend + (1 | Route))")
+```
+
+```{r}
+summary(nb_route)
+```
+
+```{r}
+ranef(nb_route)
+```
+
+```{r}
+fixef(nb_route)
+```
+
+
+```{r}
+coef(nb_route)
+```
 
 # Discussion
 
 
 ### Future Directions
-
-
-
-
-
-
-
-
-```{r}
-library(lme4)
-nb_route <- glmer.nb(Min.Delay ~ Incident + weekend + (1 | Route), data = delay_final)
-```
-
-
-
-```{r}
-library(sjPlot)
-plot_model(nb_route, show.values=TRUE, show.p=TRUE,
-                   title="Effect of Herbivores on Coral Cover")
-```
-
-
-```{r}
-plot(fitted(nb_route),resid(nb_route),pch=20)
-# indicate overdispersion
-curve(sqrt(x),add=T)
-```
 
 
 
@@ -328,7 +332,7 @@ plot(fitted(model_nb),resid(model_nb),pch=20)
 curve(sqrt(x),add=T)
 ```
 
-```{r}
+```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.cap = ""}
 # install.packages("countreg", repos="http://R-Forge.R-project.org")
 library(countreg)
 rootogram(model_nb)
@@ -339,22 +343,22 @@ rootogram(model_nb)
 kable(cbind(Estimate = coef(model_nb), confint(model_nb)))
 ```
 
-```{r}
+```{r, message = FALSE}
 # Final multilevel negative binomial regression model
 library(lme4)
 nb_route <- glmer.nb(Min.Delay ~ Incident + weekend + (1 | Route), data = delay_final)
 ```
 
 
-
-```{r}
-library(sjPlot)
-plot_model(nb_route, show.values=TRUE, show.p=TRUE,
-                   title="Effect of Herbivores on Coral Cover")
+```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.cap = "Although there are still some overdispersion at the lower counts, the residuals overall look fine. "}
+plot(fitted(nb_route), resid(nb_route),pch=20)
+curve(sqrt(x),add=T)
 ```
 
-
-
+```{r}
+# Model Summary
+tab_model(nb_route)
+```
 
 
 # Bibliography
