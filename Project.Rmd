@@ -5,7 +5,7 @@ date: "11/5/2020"
 output: pdf_document
 ---
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, fig.height = 3, fig.width = 7, fig.align = "center")
+knitr::opts_chunk$set(echo = FALSE, fig.height = 4, fig.width = 6, fig.align = "center")
 ```
 
 ```{r, echo = FALSE, message = FALSE}
@@ -82,6 +82,7 @@ delay_final <- delay_final %>%
   filter(Route %in% route_ttc)
 ```
 
+
 # Abstract
 
 
@@ -95,8 +96,8 @@ delay_final <- delay_final %>%
   city of Toronto (Wikipedia 2020). However, as many other public traffic systems 
   do, TTC streetcars also have frequent delays. The City of Toronto's Open Data 
   Portal has collected TTC streetcar delay information from the year 2014 to the 
-  year 2020 and the data sets include information, such as the incident, the date,
-  the route and the length of the delay (Open Data Portal 2020). 
+  year 2020, which includes the location, the incident, the date, the route, the 
+  length of the delay and etc (Open Data Portal 2020). 
   
   
   In this study, the major question is that what factors could potentially impact
@@ -121,8 +122,8 @@ length of the delay in minutes to the schedule for the following streetcar.
 
 ```{r, warning = FALSE, message = FALSE, echo = FALSE}
 library(kableExtra)
-kable(head(delay_final[c(1, 500, 1000, 9900, 13000), 1 : 7]), 
-      caption = "Table.1: Data Content")
+kable(head(delay_final[c(1, 500, 1000, 9900, 13000), c(1, 2, 3, 4, 6, 7)]), 
+      caption = "Data Content")
 ```
 
 
@@ -158,6 +159,7 @@ ggplot(data = delay_final, aes(x = Incident, y = Min.Delay)) +
 ```{r, warning = FALSE, message = FALSE, echo = FALSE}
 ggplot(data = delay_final, aes(x = Day, y = Min.Delay)) + 
   geom_boxplot() +
+  coord_flip() +
   ylim(0, 50) +
   xlab("Day") +
   ylab("Delay in Minutes") +
@@ -174,33 +176,52 @@ ggplot(data = delay_final, aes(x = Day, y = Min.Delay)) +
   recorded to the nearest minute, the variable Min.Delay performs like a discrete 
   variable. Therefore, the response variable is considered as the count data (the
   number of delayed minutes) and the negative binomial regression is performed 
-  instead of the liner model. 
+  instead of the linear model. The negative binomial regression includes the incident
+  and weekend variables as the predictors and they are all statistically significant
+  at the $\alpha$ level of 5%, which confirms with the EDA that they are important
+  factors to consider. And by checking the residuals and plotting Rootograms, the 
+  negative binomial model is confirmed to be the appropriate model for this data 
+  (The detailed model validation process is in the Appendix). 
   
   
+  From Fig.3, it is clear that the distributions of the delayed time are quite 
+  different among the 10 routes, where the red dashed line is the mean minutes of 
+  delay. In order to capture this in the model, each route will have its own intercept.
+  Therefore, the final model for this study is a multilevel negative binomial regression
+  fitted with the *lme4* package in R, where the delayed time is the response, 
+  delayed incident and weekend indicator are the predictors, with each route having
+  a varying intercept (glmer.nb(Min.Delay ~ Incident + weekend + (1 | Route))).
+  
+  
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+route <- delay_final %>% 
+  filter(Min.Delay < 60) %>% 
+  filter(is.na(Route) == F)
+
+ggplot(route) +
+  geom_density(alpha = 0.3) +
+  aes(x = Min.Delay, color = factor(Route)) + 
+  facet_wrap(~ factor(Route)) + 
+  geom_rug() +
+  xlab("Delay in Minutes") +
+  theme(legend.position="none") +
+  ggtitle("Fig.3 Distribution of the delay length among different routes") +
+  geom_vline(xintercept = mean(route$Min.Delay), color = "red",lty = 2) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+# Result
+
   
 
-```{r}
-model_poisson <- glm(Min.Delay ~ Incident + weekend, family = "poisson", data = delay_final)
-plot(fitted(model_poisson),resid(model_poisson),pch=20)
-# indicate overdispersion
-curve(sqrt(x),add=T)
-```
+
+# Discussion
 
 
-```{r}
-library(MASS)
-model_nb <- glm.nb((Min.Delay ) ~ Incident + weekend, data = delay_final)
-```
+### Future Directions
 
-```{r}
-summary(model_nb)
-```
 
-```{r}
-plot(fitted(model_nb),resid(model_nb),pch=20)
-# indicate overdispersion
-curve(sqrt(x),add=T)
-```
 
 
 
@@ -212,9 +233,14 @@ library(lme4)
 nb_route <- glmer.nb(Min.Delay ~ Incident + weekend + (1 | Route), data = delay_final)
 ```
 
+
+
 ```{r}
-summary(nb_route)
+library(sjPlot)
+plot_model(nb_route, show.values=TRUE, show.p=TRUE,
+                   title="Effect of Herbivores on Coral Cover")
 ```
+
 
 ```{r}
 plot(fitted(nb_route),resid(nb_route),pch=20)
@@ -222,29 +248,16 @@ plot(fitted(nb_route),resid(nb_route),pch=20)
 curve(sqrt(x),add=T)
 ```
 
-```{r}
-# install.packages("countreg", repos="http://R-Forge.R-project.org")
-library(countreg)
-rootogram(model_nb)
-```
 
 
 
 
 
-# Result
 
-
-
-
-# Discussion
-
-
-### Future Directions
 
 # Appendix
 
-### EDA 
+## EDA 
 
 ```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.cap = "The distribution of the delayed time (Min.Delay) is not very normally distributed after log transformation, therefore suggesting that a linear model is not appropriate for this data."}
 hist(log(delay_final$Min.Delay + 1), main = "Distribution of The Delayed Time (min)",
@@ -266,110 +279,83 @@ kable(incident, "simple", digits = 2, caption = "Table.1 The average delayed len
       which suggests that incident is a important variable to consider. ")
 ```
 
+```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.cap = "From this plot, there is no obvious difference between the 12 months, therefore the month is not used for grouping in the model."}
+month <- delay_final %>% 
+  filter(Min.Delay < 60) %>% 
+  filter(is.na(month) == F)
 
-### Model Fitting
-
-
-
-```{r}
-
-# Varying intercept and slopes
-#model_multi <- lmer(Min.Delay ~ Incident + Rain + (1 + Incident | month), data = delay_final)
-```
-
-```{r}
-#plot(model_multi)
-```
-
-
-
-```{r}
-# Display the average coefficients 
-#fixef(model_multi)
-```
-
-```{r}
-# Display the group-level errors for the intercepts and slopes
-#ranef(model_multi)
-```
-
-
-
-
-```{r}
-library(lme4)
-#route <- lmer(log(Min.Delay + 1) ~Incident + weekend + (1 | Route), data = delay_final)
-#plot(route)
-```
-```{r}
-#qqnorm(resid(route))
-#qqline(resid(route))
-```
-
-
-
-```{r}
-mean(delay_final$Min.Delay, na.rm = TRUE)
-delay_final$min_15 <- ifelse(delay_final$Min.Delay <= 15, 1, 0)
-#time_15 <- glmer(factor(min_15) ~ Day + (1 | Incident),  family = binomial("logit"), data = delay_final)
-```
-
-
-```{r}
-#logistic <- glmer(min_15 ~ Incident+Day+(1|Route),data=delay_final,family=binomial(link="logit"))
-```
-
-```{r}
-#glm <-  glm(min_15 ~ Incident+weekend,data=delay_final,family=binomial(link="logit"))
-```
-
-```{r}
-#summary(glm)
-library(arm)
-#binnedplot(fitted(glm),resid(glm))
-```
-
-
-
-
-```{r}
-library(arm)
-#binnedplot(fitted(logistic),resid(logistic))
-```
-
-
-
-## Model Checking
-
-### Checking Assumption -- Linearity
-
-
-
-```{r}
-test2 <- delay_final[delay_final$Min.Delay<100,]
-test2 <- test2 %>% 
-  filter(Min.Delay!=0)
-hist(log(test2$Min.Delay ))
-model<- lm(log(Min.Delay) ~ Incident, data=test2)
-summary(model)
-plot(model, which = 2)
-plot(model, which = 1) 
-```
-
-
-
-```{r, warning = FALSE, message = FALSE, eval = FALSE}
-ggplot(delay[delay$Min.Delay < 60,]) +
+ggplot(month) +
   geom_density(alpha = 0.3) +
   aes(x = Min.Delay, color = factor(month)) + 
   facet_wrap(~ factor(month)) + 
   geom_rug() +
   xlab("Delay in Minutes") +
   theme(legend.position="none") +
-  ggtitle("Fig.2 Distribution of the delay length among different months") +
-  geom_vline(xintercept = mean(delay$Min.Delay), color = "red",lty = 2) +
+  ggtitle("Distribution of the delay length among different months") +
+  geom_vline(xintercept = mean(month$Min.Delay), color = "red",lty = 2) +
   theme(plot.title = element_text(hjust = 0.5))
 ```
+
+## Model Fitting & Validation
+
+```{r}
+# Initial Linear Regression
+model_lm <- lm(log(Min.Delay + 1) ~ Incident, data = delay_final)
+par(mfrow=c(2,2))
+# Assumptions are violated, suggesting that linear model is not appropriate. 
+plot(model_lm, which = 2)
+plot(model_lm, which = 1) 
+``` 
+
+```{r}
+# Initial Poisson Regression
+poisson <- glm(Min.Delay ~ Incident + weekend, family = "poisson", data = delay_final)
+```
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.cap = "In a poisson regression, the model’s standard deviation is expected to have a square root relationship with the fitted mean, which can be compared with the curve in the plot. Since the majority of the points fall above the line, it indicates the existence of overdispersion, and therefore poisson model may not be the best."}
+plot(fitted(poisson), resid(poisson), pch = 20)
+curve(sqrt(x), add = T)
+```
+
+```{r, message = FALSE}
+# Initial Negative Binomial Regression
+library(MASS)
+model_nb <- glm.nb(Min.Delay ~ Incident + weekend, data = delay_final)
+```
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.cap = "Although there are still some points that fall above the line, the overdispersion has been fixed a lot compared to the poisson model, which suggests that the negative binomial model works better."}
+plot(fitted(model_nb),resid(model_nb),pch=20)
+curve(sqrt(x),add=T)
+```
+
+```{r}
+# install.packages("countreg", repos="http://R-Forge.R-project.org")
+library(countreg)
+rootogram(model_nb)
+```
+
+
+```{r, message = FALSE}
+kable(cbind(Estimate = coef(model_nb), confint(model_nb)))
+```
+
+```{r}
+# Final multilevel negative binomial regression model
+library(lme4)
+nb_route <- glmer.nb(Min.Delay ~ Incident + weekend + (1 | Route), data = delay_final)
+```
+
+
+
+```{r}
+library(sjPlot)
+plot_model(nb_route, show.values=TRUE, show.p=TRUE,
+                   title="Effect of Herbivores on Coral Cover")
+```
+
+
+
+
 
 # Bibliography
 
@@ -402,7 +388,11 @@ ggplot(delay[delay$Min.Delay < 60,]) +
 6. Venables, W. N. & Ripley, B. D. (2002) Modern Applied Statistics with S. Fourth Edition. Springer,
   New York. ISBN 0-387-95457-0
 
-  
+7. Lüdecke D (2020). sjPlot: Data Visualization for Statistics in Social Science. R package version 2.8.6,
+<URL: https://CRAN.R-project.org/package=sjPlot>.
+
+8. Christian Kleiber, Achim Zeileis (2016). Visualizing Count Data Regressions Using Rootograms. The American
+  Statistician, 70(3), 296--303. doi:10.1080/00031305.2016.1173590
 
 
 
