@@ -220,7 +220,7 @@ ggplot(month) +
 
 # Model
 
-## Initial Model
+## Initial Linear Model
 
 ```{r}
 # Highly right-skewed
@@ -250,6 +250,43 @@ library(lme4)
 model_multi <- lmer(Min.Delay ~ Incident + Rain + (1 + Incident | month), data = delay_final)
 ```
 
+
+## Initial Poisson Model
+
+```{r}
+poisson <- glm(Min.Delay ~ Incident + weekend, family = "poisson", data = delay_final)
+```
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.cap = "In a poisson regression, the model’s standard deviation is expected to have a square root relationship with the fitted mean, which can be compared with the curve in the plot. Since the majority of the points fall above the line, it indicates the existence of overdispersion, and therefore poisson model may not be the best."}
+plot(fitted(poisson), resid(poisson), pch = 20)
+curve(sqrt(x), add = T)
+```
+```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.cap = "The departures from expected counts are considerably large, again suggesting the poisson model is not the best."}
+# install.packages("countreg", repos="http://R-Forge.R-project.org")
+library(countreg)
+rootogram(poisson)
+```
+
+## Initial Negative Binomial Regression
+
+```{r}
+library(MASS)
+model_nb <- glm.nb(Min.Delay ~ Incident + weekend, data = delay_final)
+```
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.cap = "Although there are still some points that fall above the line, the overdispersion has been fixed a lot compared to the poisson model, which suggests that the negative binomial model works better."}
+plot(fitted(model_nb),resid(model_nb),pch=20)
+curve(sqrt(x),add=T)
+```
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.cap = "Although the roorogram does not look perfect, compared to the poisson model, the departures from expected counts are much smaller with the negative binomial model."}
+rootogram(model_nb)
+```
+
+
+```{r, message = FALSE}
+kable(cbind(Estimate = coef(model_nb), confint(model_nb)))
+```
 
 ## Final Model -- Multilevel negative binomial regression
 
