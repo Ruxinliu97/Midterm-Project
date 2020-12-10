@@ -214,9 +214,23 @@ ggplot(route) +
 # Result
 
   
-  From Fig.4, the effects and their 95% confidence intervals of the multilevel model 
-  are shown, where the effects are calculated by taking the exponential of the estimated 
-  coefficients. 
+  Based on the results of the multilevel negative binomial model, each route has 
+  a slightly different intercept and the estimated average intercept is 4.34, which
+  means that when the delayed incident is Diversion (the reference group) and the
+  delay happens on weekdays (weekend = 0), the delayed time is expected to be 76.8
+  minutes ($e^{4.34}=76.8$). From Fig.4, the effects and their 95% confidence intervals
+  of the model are shown, where the effects are calculated by taking the exponential
+  of the estimated coefficients, and all the effects are statistically significant at
+  $\alpha$ level of 5%. 
+  
+  
+  For all other incidents, the estimated delayed time is shorter compared to when
+  there is a diversion, which is consistent with the patterns shown in Fig.1. For
+  example, when holding other variables constant, if the delayed incident is General
+  Delay, the delayed time is expected to be 79% (1 - 0.21) shorter compared to the
+  delayed incident of Diversion. When holding other variables constant, if the delay
+  happens on weekends (weekend = 1), the delayed time is expected to be 11% (1.11 - 1)
+  longer compared to weekdays.
   
 
 ```{r, warning = FALSE, message = FALSE, echo = FALSE}
@@ -234,18 +248,10 @@ plot_model(nb_route, show.values=TRUE, show.p=TRUE,
 summary(nb_route)
 ```
 
-```{r}
-ranef(nb_route)
-```
-
-```{r}
-fixef(nb_route)
-```
 
 
-```{r}
-coef(nb_route)
-```
+
+
 
 # Discussion
 
@@ -358,6 +364,11 @@ curve(sqrt(x),add=T)
 ```{r}
 # Model Summary
 tab_model(nb_route)
+```
+
+```{r}
+# Random effects
+ranef(nb_route)
 ```
 
 
