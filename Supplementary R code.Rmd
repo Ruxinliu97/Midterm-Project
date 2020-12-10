@@ -138,6 +138,26 @@ ggplot(data = delay_final, aes(x = Day, y = Min.Delay)) +
 ```
 
 
+## R code for Fig.3 in the report
+
+```{r}
+route <- delay_final %>% 
+  filter(Min.Delay < 60) %>% 
+  filter(is.na(Route) == F)
+
+ggplot(route) +
+  geom_density(alpha = 0.3) +
+  aes(x = Min.Delay, color = factor(Route)) + 
+  facet_wrap(~ factor(Route)) + 
+  geom_rug() +
+  xlab("Delay in Minutes") +
+  theme(legend.position="none") +
+  ggtitle("Fig.3 Distribution of the delay length among different routes") +
+  geom_vline(xintercept = mean(route$Min.Delay), color = "red",lty = 2) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
 ```{r, warning = FALSE, message = FALSE, eval = FALSE}
 # Difference between each year
 year <- delay %>% 
