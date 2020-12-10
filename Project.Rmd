@@ -230,7 +230,10 @@ ggplot(route) +
   Delay, the delayed time is expected to be 79% (1 - 0.21) shorter compared to the
   delayed incident of Diversion. When holding other variables constant, if the delay
   happens on weekends (weekend = 1), the delayed time is expected to be 11% (1.11 - 1)
-  longer compared to weekdays.
+  longer compared to weekdays, which is consistent with the patterns shown in Fig.2. 
+  Therefore, the delay-causing incident and the day of the delay both have impact 
+  on the streetbus delayed minutes. 
+  
   
 
 ```{r, warning = FALSE, message = FALSE, echo = FALSE}
@@ -244,17 +247,18 @@ plot_model(nb_route, show.values=TRUE, show.p=TRUE,
            title = "Fig.4 Model Effects: glmer.nb(Min.Delay ~ Incident + weekend + (1 | Route))")
 ```
 
-```{r}
-summary(nb_route)
-```
-
-
-
-
-
-
 # Discussion
 
+
+  Based on the EDA and the results of the multilevel negative binomial model, there
+  is strong evidence that the delay-causing incident and the delay-happening day
+  both have influence on how long the delay will be. More specifically, when the 
+  delay is due to diversion, the average delayed time in minutes is expected to 
+  be the longest, while when the delay is due to late leaving garage, the average
+  delayed time in minutes is expected to be the shortest. Also, when the delay happens
+  on weekdays, the average delayed time in minutes is expected to be shorter than
+  on weekends. 
+  
 
 ### Future Directions
 
@@ -326,6 +330,11 @@ poisson <- glm(Min.Delay ~ Incident + weekend, family = "poisson", data = delay_
 plot(fitted(poisson), resid(poisson), pch = 20)
 curve(sqrt(x), add = T)
 ```
+```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.cap = "The departures from expected counts are considerably large, again suggesting the poisson model is not the best."}
+# install.packages("countreg", repos="http://R-Forge.R-project.org")
+library(countreg)
+rootogram(poisson)
+```
 
 ```{r, message = FALSE}
 # Initial Negative Binomial Regression
@@ -338,9 +347,7 @@ plot(fitted(model_nb),resid(model_nb),pch=20)
 curve(sqrt(x),add=T)
 ```
 
-```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.cap = ""}
-# install.packages("countreg", repos="http://R-Forge.R-project.org")
-library(countreg)
+```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.cap = "Although the roorogram does not look perfect, compared to the poisson model, the departures from expected counts are much smaller with the negative binomial model."}
 rootogram(model_nb)
 ```
 
@@ -351,12 +358,11 @@ kable(cbind(Estimate = coef(model_nb), confint(model_nb)))
 
 ```{r, message = FALSE}
 # Final multilevel negative binomial regression model
-library(lme4)
 nb_route <- glmer.nb(Min.Delay ~ Incident + weekend + (1 | Route), data = delay_final)
 ```
 
 
-```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.cap = "Although there are still some overdispersion at the lower counts, the residuals overall look fine. "}
+```{r, warning = FALSE, message = FALSE, echo = FALSE, fig.cap = "Although there are still some overdispersion at the lower counts, the residuals overall look fine."}
 plot(fitted(nb_route), resid(nb_route),pch=20)
 curve(sqrt(x),add=T)
 ```
