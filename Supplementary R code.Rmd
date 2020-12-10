@@ -201,6 +201,23 @@ ggplot(data = delay, aes(x = Incident, y = Min.Delay)) +
 # visualization, the range of the delay is adjusted. 
 ```
 
+```{r}
+month <- delay_final %>% 
+  filter(Min.Delay < 60) %>% 
+  filter(is.na(month) == F)
+
+ggplot(month) +
+  geom_density(alpha = 0.3) +
+  aes(x = Min.Delay, color = factor(month)) + 
+  facet_wrap(~ factor(month)) + 
+  geom_rug() +
+  xlab("Delay in Minutes") +
+  theme(legend.position="none") +
+  ggtitle("Distribution of the delay length among different months") +
+  geom_vline(xintercept = mean(month$Min.Delay), color = "red",lty = 2) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
 # Model
 
 ## Initial Model
