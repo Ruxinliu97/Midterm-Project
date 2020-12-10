@@ -249,3 +249,26 @@ library(lme4)
 # Varying intercept and slopes
 model_multi <- lmer(Min.Delay ~ Incident + Rain + (1 + Incident | month), data = delay_final)
 ```
+
+
+## Final Model -- Multilevel negative binomial regression
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+library(lme4)
+library(sjPlot)
+nb_route <- glmer.nb(Min.Delay ~ Incident + weekend + (1 | Route), data = delay_final)
+```
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+plot_model(nb_route, show.values=TRUE, show.p=TRUE, 
+           title = "Fig.4 Model Effects: glmer.nb(Min.Delay ~ Incident + weekend + (1 | Route))")
+```
+
+
+```{r}
+summary(nb_route)
+ranef(nb_route)
+fixef(nb_route)
+coef(nb_route)
+```
+
